@@ -55,7 +55,7 @@ flowchart TD
 The system is fully documented in terms of its three principal lifecycle layers:
 
 ### 🧠 1. Model Development & Training Pipeline
-*File:* `credit-card-fraud (1).ipynb`
+*File:* `main-code.ipynb`
 
 This component handles data ingestion, engineering, class balancing, model comparison, hyperparameter tuning, and model selection.
 
