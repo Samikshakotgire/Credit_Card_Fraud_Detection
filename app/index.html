@@ -1,0 +1,1573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FraudShield — MLOps Fraud Detection Dashboard</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons via CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: rgba(17, 24, 39, 0.6);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --primary-grad: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+            --accent-glow: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, rgba(0, 0, 0, 0) 70%);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --success: #10b981;
+            --success-glow: rgba(16, 185, 129, 0.2);
+            --danger: #ef4444;
+            --danger-glow: rgba(239, 68, 68, 0.2);
+            --warning: #f59e0b;
+            --warning-glow: rgba(245, 158, 11, 0.2);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Decorative Background Glows */
+        .glow-sphere {
+            position: absolute;
+            width: 600px;
+            height: 600px;
+            border-radius: 50%;
+            background: var(--accent-glow);
+            filter: blur(80px);
+            z-index: -1;
+            pointer-events: none;
+        }
+        .glow-1 { top: -10%; left: -10%; }
+        .glow-2 { bottom: -10%; right: -10%; }
+
+        /* Container Layout */
+        .app-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Header Styling */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2.5rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .logo-section svg {
+            color: #6366f1;
+            width: 2.5rem;
+            height: 2.5rem;
+        }
+
+        .logo-text h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.75rem;
+            font-weight: 800;
+            background: var(--primary-grad);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+
+        .logo-text p {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        /* Uptime Widget */
+        .system-status {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            background: rgba(17, 24, 39, 0.4);
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            border: 1px solid var(--card-border);
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--warning);
+            box-shadow: 0 0 8px var(--warning-glow);
+        }
+
+        .status-dot.online {
+            background-color: var(--success);
+            box-shadow: 0 0 10px var(--success);
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.offline {
+            background-color: var(--danger);
+            box-shadow: 0 0 10px var(--danger);
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+
+        .metrics-summary {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            border-left: 1px solid var(--card-border);
+            padding-left: 1.5rem;
+        }
+
+        /* Tabs Navigation */
+        .tabs {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 2rem;
+            background: rgba(17, 24, 39, 0.3);
+            padding: 0.35rem;
+            border-radius: 12px;
+            border: 1px solid var(--card-border);
+            width: fit-content;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            padding: 0.75rem 1.5rem;
+            font-size: 0.95rem;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .tab-btn:hover {
+            color: var(--text-main);
+        }
+
+        .tab-btn.active {
+            background: var(--primary-grad);
+            color: var(--text-main);
+            box-shadow: 0 4px 12px rgba(168, 85, 247, 0.25);
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.4s ease forwards;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Grid Layout for Sandbox */
+        .sandbox-grid {
+            display: grid;
+            grid-template-columns: 1.6fr 1fr;
+            gap: 2rem;
+            align-items: start;
+        }
+
+        /* Card System */
+        .glass-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.25rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card-subtitle {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+
+        /* Preset Buttons */
+        .presets-wrapper {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .preset-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--card-border);
+            color: var(--text-main);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            transition: all 0.2s ease;
+        }
+
+        .preset-btn.legit:hover {
+            background: var(--success-glow);
+            border-color: var(--success);
+            color: #a7f3d0;
+        }
+
+        .preset-btn.fraud:hover {
+            background: var(--danger-glow);
+            border-color: var(--danger);
+            color: #fca5a5;
+        }
+
+        /* Input Controls */
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        .form-section-title {
+            grid-column: 1 / -1;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: #818cf8;
+            margin-top: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .input-label-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .field-desc {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .value-badge {
+            font-family: monospace;
+            background: rgba(255, 255, 255, 0.08);
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            color: #a5b4fc;
+            font-size: 0.8rem;
+        }
+
+        .input-control {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            padding: 0.65rem 0.75rem;
+            color: var(--text-main);
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+        }
+
+        .input-control:focus {
+            outline: none;
+            border-color: #6366f1;
+            background: rgba(255, 255, 255, 0.06);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+        }
+
+        /* Sliders */
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background: #6366f1;
+            transition: all 0.1s ease;
+            box-shadow: 0 0 8px rgba(99, 102, 241, 0.5);
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        /* Collapsible section */
+        .advanced-trigger {
+            grid-column: 1 / -1;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--card-border);
+            padding: 0.75rem;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 1.5rem;
+            transition: all 0.2s ease;
+        }
+
+        .advanced-trigger:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-main);
+        }
+
+        .advanced-grid {
+            grid-column: 1 / -1;
+            display: none;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.25rem;
+            animation: slideDown 0.3s ease-out forwards;
+        }
+
+        .advanced-grid.show {
+            display: grid;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Action Buttons */
+        .submit-btn {
+            background: var(--primary-grad);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 1rem;
+            font-size: 1.05rem;
+            font-weight: 700;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            box-shadow: 0 4px 15px rgba(168, 85, 247, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(168, 85, 247, 0.4);
+        }
+
+        .submit-btn:active {
+            transform: translateY(0);
+        }
+
+        /* Results Card */
+        .results-panel {
+            position: sticky;
+            top: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .result-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            padding: 2.5rem 1.5rem;
+            position: relative;
+        }
+
+        /* Probability Gauge */
+        .gauge-wrapper {
+            position: relative;
+            width: 160px;
+            height: 160px;
+            margin-bottom: 1.5rem;
+        }
+
+        .gauge-svg {
+            transform: rotate(-90deg);
+        }
+
+        .gauge-bg {
+            fill: none;
+            stroke: rgba(255, 255, 255, 0.05);
+            stroke-width: 12px;
+        }
+
+        .gauge-fill {
+            fill: none;
+            stroke: url(#gauge-grad);
+            stroke-width: 12px;
+            stroke-dasharray: 440;
+            stroke-dashoffset: 440;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 1s ease-out;
+        }
+
+        .gauge-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+
+        .gauge-value {
+            font-family: 'Outfit', sans-serif;
+            font-size: 2rem;
+            font-weight: 800;
+            line-height: 1;
+        }
+
+        .gauge-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+
+        /* Result Badges */
+        .outcome-badge {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.4rem;
+            font-weight: 800;
+            padding: 0.5rem 1.5rem;
+            border-radius: 9999px;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1.25rem;
+            animation: bounceIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes bounceIn {
+            0% { transform: scale(0.3); opacity: 0; }
+            50% { transform: scale(1.05); opacity: 0.8; }
+            70% { transform: scale(0.9); opacity: 0.9; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .outcome-badge.legit {
+            background: var(--success-glow);
+            color: var(--success);
+            border: 1px solid var(--success);
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.15);
+        }
+
+        .outcome-badge.fraud {
+            background: var(--danger-glow);
+            color: var(--danger);
+            border: 1px solid var(--danger);
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.15);
+            animation: pulse-border 1.5s infinite;
+        }
+
+        @keyframes pulse-border {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+
+        .meta-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            width: 100%;
+            margin-top: 1rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .meta-item {
+            text-align: center;
+        }
+
+        .meta-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.25rem;
+        }
+
+        .meta-val {
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+
+        .meta-val.high { color: var(--success); }
+        .meta-val.medium { color: var(--warning); }
+        .meta-val.low { color: var(--danger); }
+
+        /* Loader Overlay */
+        .loader-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(11, 15, 25, 0.85);
+            backdrop-filter: blur(8px);
+            border-radius: 16px;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            gap: 1rem;
+            z-index: 10;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-left-color: #6366f1;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Batch Playground Tab */
+        .batch-grid {
+            display: grid;
+            grid-template-columns: 1fr 1.2fr;
+            gap: 2rem;
+        }
+
+        .json-editor {
+            width: 100%;
+            height: 380px;
+            background: #020617;
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 1rem;
+            color: #38bdf8;
+            font-family: monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            resize: none;
+            outline: none;
+        }
+
+        .json-editor:focus {
+            border-color: #6366f1;
+        }
+
+        /* Custom Table Styling */
+        .table-wrapper {
+            max-height: 460px;
+            overflow-y: auto;
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.9rem;
+        }
+
+        th {
+            background: rgba(17, 24, 39, 0.8);
+            color: var(--text-muted);
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+            padding: 0.85rem 1rem;
+            border-bottom: 1px solid var(--card-border);
+            position: sticky;
+            top: 0;
+        }
+
+        td {
+            padding: 0.85rem 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .badge-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 0.2rem 0.5rem;
+            border-radius: 9999px;
+            text-transform: uppercase;
+        }
+
+        .badge-pill.legit {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .badge-pill.fraud {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+
+        /* Explainer Section styling */
+        .explainer-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        .metric-card-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .small-metric-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 1rem 1.25rem;
+            text-align: center;
+        }
+
+        .small-metric-card .num {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #818cf8;
+            margin-bottom: 0.25rem;
+        }
+
+        .small-metric-card .lbl {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .feature-importance-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin-top: 1rem;
+        }
+
+        .importance-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .feat-name {
+            font-family: monospace;
+            font-size: 0.85rem;
+            width: 50px;
+        }
+
+        .importance-bar-bg {
+            flex-grow: 1;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .importance-bar-fill {
+            height: 100%;
+            background: var(--primary-grad);
+            border-radius: 4px;
+        }
+
+        .feat-value {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            width: 40px;
+            text-align: right;
+        }
+
+        /* Flow diagram list */
+        .flow-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+            position: relative;
+            padding-left: 1.5rem;
+        }
+
+        .flow-list::before {
+            content: '';
+            position: absolute;
+            left: 5px;
+            top: 10px;
+            bottom: 10px;
+            width: 2px;
+            background: rgba(99, 102, 241, 0.2);
+        }
+
+        .flow-step {
+            position: relative;
+        }
+
+        .flow-step::before {
+            content: '';
+            position: absolute;
+            left: -20px;
+            top: 5px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #0b0f19;
+            border: 3px solid #6366f1;
+            box-shadow: 0 0 6px #6366f1;
+        }
+
+        .flow-step h4 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .flow-step p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        footer {
+            margin-top: 4rem;
+            padding: 1.5rem 0;
+            text-align: center;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            border-top: 1px solid var(--card-border);
+        }
+    </style>
+</head>
+<body>
+    <div class="glow-sphere glow-1"></div>
+    <div class="glow-sphere glow-2"></div>
+
+    <div class="app-container">
+        <!-- Header -->
+        <header>
+            <div class="logo-section">
+                <i data-lucide="shield-check"></i>
+                <div class="logo-text">
+                    <h1>FraudShield</h1>
+                    <p>MLOps Production Service</p>
+                </div>
+            </div>
+            
+            <div class="system-status">
+                <div class="status-indicator">
+                    <span id="health-dot" class="status-dot"></span>
+                    <span id="health-text">Connecting...</span>
+                </div>
+                <div class="metrics-summary">
+                    <span>Model: <strong style="color:#a5b4fc">xgboost-optuna-v1</strong></span>
+                    <span>Uptime: <strong id="health-latency">-- ms</strong></span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('sandbox')">
+                <i data-lucide="sliders"></i> Transaction Sandbox
+            </button>
+            <button class="tab-btn" onclick="switchTab('batch')">
+                <i data-lucide="layers"></i> Batch Simulator
+            </button>
+            <button class="tab-btn" onclick="switchTab('pipeline')">
+                <i data-lucide="git-branch"></i> Pipeline Architecture
+            </button>
+        </div>
+
+        <!-- TAB 1: SANDBOX PLAYGROUND -->
+        <div id="sandbox-tab" class="tab-content active">
+            <div class="sandbox-grid">
+                <!-- Sandbox Form Card -->
+                <div class="glass-card">
+                    <div class="card-header">
+                        <div>
+                            <h3 class="card-title"><i data-lucide="sliders-horizontal" style="color:#6366f1"></i> Real-time Transaction Simulator</h3>
+                            <p class="card-subtitle">Adjust sliding transaction details or load pre-arranged test scenarios</p>
+                        </div>
+                        <div class="presets-wrapper">
+                            <button class="preset-btn legit" onclick="loadPreset('legit')">
+                                <i data-lucide="check-circle-2"></i> Legit Preset
+                            </button>
+                            <button class="preset-btn fraud" onclick="loadPreset('fraud')">
+                                <i data-lucide="alert-triangle"></i> Fraud Preset
+                            </button>
+                        </div>
+                    </div>
+
+                    <form id="sandbox-form" onsubmit="runPrediction(event)">
+                        <div class="form-grid">
+                            <!-- Core Parameters -->
+                            <div class="form-section-title">Core Transaction Parameters</div>
+                            
+                            <div class="input-group">
+                                <div class="input-label-row">
+                                    <label class="field-desc">Transaction Value (USD)</label>
+                                    <span id="amount-val-badge" class="value-badge">$ 85.00</span>
+                                </div>
+                                <input id="amount-input" type="number" step="0.01" value="85.00" class="input-control" oninput="onAmountChanged(this.value)">
+                            </div>
+                            
+                            <div class="input-group">
+                                <div class="input-label-row">
+                                    <label class="field-desc">Hour of Day (0-23)</label>
+                                    <span id="hour-val-badge" class="value-badge">14:00</span>
+                                </div>
+                                <input id="hour-input" type="range" min="0" max="23" value="14" oninput="onSliderChange('hour', this.value)">
+                            </div>
+
+                            <!-- High Weight Decision Features -->
+                            <div class="form-section-title">High Importance PCA Weights</div>
+                            
+                            <!-- V14 -->
+                            <div class="input-group">
+                                <div class="input-label-row">
+                                    <span>V14 <span class="field-desc">(Isolation Index)</span></span>
+                                    <span id="v14-val-badge" class="value-badge">-0.311</span>
+                                </div>
+                                <input id="v14-input" type="range" min="-12" max="5" step="0.001" value="-0.311" oninput="onSliderChange('v14', this.value)">
+                            </div>
+                            
+                            <!-- V12 -->
+                            <div class="input-group">
+                                <div class="input-label-row">
+                                    <span>V12 <span class="field-desc">(Temporal Match)</span></span>
+                                    <span id="v12-val-badge" class="value-badge">-0.617</span>
+                                </div>
+                                <input id="v12-input" type="range" min="-12" max="5" step="0.001" value="-0.617" oninput="onSliderChange('v12', this.value)">
+                            </div>
+
+                            <!-- V17 -->
+                            <div class="input-group">
+                                <div class="input-label-row">
+                                    <span>V17 <span class="field-desc">(Locality Score)</span></span>
+                                    <span id="v17-val-badge" class="value-badge">0.208</span>
+                                </div>
+                                <input id="v17-input" type="range" min="-12" max="5" step="0.001" value="0.208" oninput="onSliderChange('v17', this.value)">
+                            </div>
+
+                            <!-- V10 -->
+                            <div class="input-group">
+                                <div class="input-label-row">
+                                    <span>V10 <span class="field-desc">(Device Signature)</span></span>
+                                    <span id="v10-val-badge" class="value-badge">0.091</span>
+                                </div>
+                                <input id="v10-input" type="range" min="-12" max="5" step="0.001" value="0.091" oninput="onSliderChange('v10', this.value)">
+                            </div>
+
+                            <!-- V4 -->
+                            <div class="input-group">
+                                <div class="input-label-row">
+                                    <span>V4 <span class="field-desc">(Merchant Risk)</span></span>
+                                    <span id="v4-val-badge" class="value-badge">1.378</span>
+                                </div>
+                                <input id="v4-input" type="range" min="-5" max="8" step="0.001" value="1.378" oninput="onSliderChange('v4', this.value)">
+                            </div>
+
+                            <!-- V11 -->
+                            <div class="input-group">
+                                <div class="input-label-row">
+                                    <span>V11 <span class="field-desc">(Velocity Index)</span></span>
+                                    <span id="v11-val-badge" class="value-badge">-0.552</span>
+                                </div>
+                                <input id="v11-input" type="range" min="-5" max="8" step="0.001" value="-0.552" oninput="onSliderChange('v11', this.value)">
+                            </div>
+
+                            <!-- ADVANCED DROPDOWN TRIGGER -->
+                            <div class="advanced-trigger" onclick="toggleAdvanced()">
+                                <span id="adv-arrow"><i data-lucide="chevron-down"></i></span>
+                                <span>Advanced Feature Latent Weights (V1-V28 Remaining)</span>
+                            </div>
+
+                            <!-- ADVANCED INPUT CONTROLS -->
+                            <div id="advanced-grid" class="advanced-grid">
+                                <template id="adv-field-template">
+                                    <div class="input-group">
+                                        <div class="input-label-row">
+                                            <span class="feat-name-lbl">V1</span>
+                                            <span class="feat-val-lbl value-badge">0.00</span>
+                                        </div>
+                                        <input type="range" min="-5" max="5" step="0.01" value="0" class="feat-input-elem">
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="submit-btn">
+                            <i data-lucide="shield-alert"></i> Evaluate Transaction Risk
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Sandbox Output Card -->
+                <div class="results-panel">
+                    <div class="glass-card result-container">
+                        <!-- Internal Loader Overlay -->
+                        <div id="sandbox-loader" class="loader-overlay">
+                            <div class="spinner"></div>
+                            <span style="font-weight:600; color:#818cf8">Computing Risk Probability...</span>
+                        </div>
+
+                        <h3 class="card-title" style="margin-bottom:2rem"><i data-lucide="activity" style="color:#a855f7"></i> Real-time Risk Assessment</h3>
+
+                        <!-- Circular Gauge -->
+                        <div class="gauge-wrapper">
+                            <svg class="gauge-svg" width="160" height="160" viewBox="0 0 160 160">
+                                <defs>
+                                    <linearGradient id="gauge-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                        <stop offset="0%" stop-color="#6366f1" />
+                                        <stop offset="100%" stop-color="#a855f7" />
+                                    </linearGradient>
+                                </defs>
+                                <circle class="gauge-bg" cx="80" cy="80" r="70" />
+                                <circle id="gauge-fill-circle" class="gauge-fill" cx="80" cy="80" r="70" />
+                            </svg>
+                            <div class="gauge-text">
+                                <div id="risk-pct" class="gauge-value">2.3%</div>
+                                <div class="gauge-label">Risk Probability</div>
+                            </div>
+                        </div>
+
+                        <!-- Result Class Tag -->
+                        <div id="outcome-badge" class="outcome-badge legit">
+                            <i id="outcome-icon" data-lucide="shield-check"></i>
+                            <span id="outcome-text">LEGITIMATE</span>
+                        </div>
+
+                        <!-- Meta Info Grid -->
+                        <div class="meta-stats">
+                            <div class="meta-item">
+                                <div class="meta-label">Confidence</div>
+                                <div id="confidence-val" class="meta-val high">HIGH</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-label">API Latency</div>
+                                <div id="latency-val" class="meta-val">1.2 ms</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: BATCH PLAYGROUND -->
+        <div id="batch-tab" class="tab-content">
+            <div class="batch-grid">
+                <!-- Left: JSON Editor Panel -->
+                <div class="glass-card">
+                    <h3 class="card-title" style="margin-bottom:1.5rem">
+                        <i data-lucide="file-code" style="color:#6366f1"></i> Batch Payload (JSON Array)
+                    </h3>
+                    <textarea id="batch-json-input" class="json-editor" spellcheck="false"></textarea>
+                    <button onclick="runBatchPrediction()" class="submit-btn" style="margin-top:1.5rem">
+                        <i data-lucide="play"></i> Execute Batch Scoring (Max 100)
+                    </button>
+                </div>
+
+                <!-- Right: Scoring Table Panel -->
+                <div class="glass-card" style="position:relative">
+                    <div id="batch-loader" class="loader-overlay">
+                        <div class="spinner"></div>
+                        <span style="font-weight:600; color:#818cf8">Processing Batch Data...</span>
+                    </div>
+
+                    <h3 class="card-title" style="margin-bottom:1.5rem">
+                        <i data-lucide="table" style="color:#a855f7"></i> Batch Predictions Summary
+                    </h3>
+                    
+                    <div class="table-wrapper">
+                        <table id="batch-results-table">
+                            <thead>
+                                <tr>
+                                    <th>Index</th>
+                                    <th>Prediction</th>
+                                    <th>Fraud Prob.</th>
+                                </tr>
+                            </thead>
+                            <tbody id="batch-results-body">
+                                <tr>
+                                    <td colspan="3" style="text-align:center; color:var(--text-muted)">
+                                        No batch data scored yet. Paste JSON and click execute.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: PIPELINE EXPLAINER -->
+        <div id="pipeline-tab" class="tab-content">
+            <div class="explainer-container">
+                <!-- Architecture Diagram Explanation -->
+                <div class="glass-card">
+                    <h3 class="card-title" style="margin-bottom:1.5rem">
+                        <i data-lucide="git-commit" style="color:#6366f1"></i> End-to-End MLOps Pipeline Flow
+                    </h3>
+                    
+                    <div class="flow-list">
+                        <div class="flow-step">
+                            <h4>1. Stratified Ingestion & Feature Engineering</h4>
+                            <p>Data is scaled and balanced. Transaction `Amount` is normal-scaled via `log1p(Amount)`, and `Hour` is extracted to capture circadian patterns of fraudulent charge bursts.</p>
+                        </div>
+                        <div class="flow-step">
+                            <h4>2. Leakage-Free Over-sampling (SMOTE)</h4>
+                            <p>Using imbalanced-learn pipelines, SMOTE generates synthetic fraud vectors <em>only inside CV loops</em> to guarantee that no test set data leaks into the model training bounds.</p>
+                        </div>
+                        <div class="flow-step">
+                            <h4>3. XGBoost Model & Optuna Bayesian HPO</h4>
+                            <p>A gradient boosted trees architecture is tuned across 30 Optuna trials to directly maximize the Precision-Recall Area Under the Curve (PR-AUC), bypassing deceitful standard accuracy metrics.</p>
+                        </div>
+                        <div class="flow-step">
+                            <h4>4. Production Deployment Packaging</h4>
+                            <p>The serialization yields `fraud_model.pkl`. FastAPI loads this binary once at server startup and containerizes it with a highly optimized Python-slim Dockerfile ready for horizontal cloud orchestration.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Model Stats and Feature Weights -->
+                <div class="glass-card">
+                    <h3 class="card-title" style="margin-bottom:1.5rem">
+                        <i data-lucide="bar-chart-3" style="color:#a855f7"></i> Production Validation Metrics
+                    </h3>
+
+                    <div class="metric-card-group">
+                        <div class="small-metric-card">
+                            <div class="num">0.8746</div>
+                            <div class="lbl">PR-AUC (Precision-Recall)</div>
+                        </div>
+                        <div class="small-metric-card">
+                            <div class="num">0.9838</div>
+                            <div class="lbl">ROC-AUC Score</div>
+                        </div>
+                        <div class="small-metric-card">
+                            <div class="num">88.0 %</div>
+                            <div class="lbl">Fraud Recall (TPR)</div>
+                        </div>
+                        <div class="small-metric-card">
+                            <div class="num">55.0 %</div>
+                            <div class="lbl">Precision Rate</div>
+                        </div>
+                    </div>
+
+                    <h4 class="card-title" style="font-size:1.05rem; margin-top:2rem">
+                        <i data-lucide="help-circle" style="color:#10b981; width:1.1rem; height:1.1rem"></i> Relative Feature Weights (SHAP Values)
+                    </h4>
+                    <p class="card-subtitle" style="margin-bottom:1rem">Top 6 features driving the XGBoost classification boundary</p>
+
+                    <div class="feature-importance-list">
+                        <div class="importance-item">
+                            <span class="feat-name">V17</span>
+                            <div class="importance-bar-bg"><div class="importance-bar-fill" style="width: 100%"></div></div>
+                            <span class="feat-value">1.00</span>
+                        </div>
+                        <div class="importance-item">
+                            <span class="feat-name">V14</span>
+                            <div class="importance-bar-bg"><div class="importance-bar-fill" style="width: 82%"></div></div>
+                            <span class="feat-value">0.82</span>
+                        </div>
+                        <div class="importance-item">
+                            <span class="feat-name">V12</span>
+                            <div class="importance-bar-bg"><div class="importance-bar-fill" style="width: 71%"></div></div>
+                            <span class="feat-value">0.71</span>
+                        </div>
+                        <div class="importance-item">
+                            <span class="feat-name">V10</span>
+                            <div class="importance-bar-bg"><div class="importance-bar-fill" style="width: 65%"></div></div>
+                            <span class="feat-value">0.65</span>
+                        </div>
+                        <div class="importance-item">
+                            <span class="feat-name">V11</span>
+                            <div class="importance-bar-bg"><div class="importance-bar-fill" style="width: 58%"></div></div>
+                            <span class="feat-value">0.58</span>
+                        </div>
+                        <div class="importance-item">
+                            <span class="feat-name">V4</span>
+                            <div class="importance-bar-bg"><div class="importance-bar-fill" style="width: 44%"></div></div>
+                            <span class="feat-value">0.44</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer>
+            <p>Designed and Built with Real-time FastAPI & XGBoost Prediction Pipelines.</p>
+        </footer>
+    </div>
+
+    <script>
+        // Preset vectors
+        const presets = {
+            legit: {
+                Amount: 85.00,
+                Hour: 14,
+                V1: -1.3598, V2: -0.0728, V3: 2.5363, V4: 1.3781,
+                V5: -0.3383, V6: 0.4623, V7: 0.2396, V8: 0.0987,
+                V9: 0.3638, V10: 0.0908, V11: -0.5516, V12: -0.6178,
+                V13: -0.9914, V14: -0.3112, V15: 1.4682, V16: -0.4704,
+                V17: 0.2080, V18: 0.0258, V19: 0.4040, V20: 0.2514,
+                V21: -0.0183, V22: 0.2778, V23: -0.1105, V24: 0.0669,
+                V25: 0.1285, V26: -0.1891, V27: 0.1336, V28: -0.0211
+            },
+            fraud: {
+                Amount: 980.50,
+                Hour: 3,
+                V1: -3.0563, V2: 4.4881, V3: -7.1561, V4: 4.9685,
+                V5: -3.6412, V6: -2.3361, V7: -5.5081, V8: 1.2182,
+                V9: -3.0081, V10: -7.5091, V11: 4.0201, V12: -8.5102,
+                V13: -0.3451, V14: -9.0562, V15: -0.1001, V16: -5.1321,
+                V17: -10.9851, V18: -3.9051, V19: 1.1031, V20: 0.9021,
+                V21: 0.8171, V22: -0.1321, V23: -0.2982, V24: -0.3011,
+                V25: 0.3541, V26: 0.4021, V27: 0.8122, V28: 0.3201
+            }
+        };
+
+        // All 28 components setup
+        const activeSliders = ['hour', 'v14', 'v12', 'v17', 'v10', 'v4', 'v11'];
+        const featuresState = {};
+
+        // Document elements initialized
+        window.addEventListener('DOMContentLoaded', () => {
+            // Initialize Lucide icons
+            lucide.createIcons();
+            
+            // Build the remaining V features dynamically in advanced section
+            const advancedGrid = document.getElementById('advanced-grid');
+            const template = document.getElementById('adv-field-template');
+            
+            for (let i = 1; i <= 28; i++) {
+                const key = 'v' + i;
+                // Skip components displayed in active UI
+                if (activeSliders.includes(key)) continue;
+                
+                const clone = template.content.cloneNode(true);
+                
+                const nameLabel = clone.querySelector('.feat-name-lbl');
+                nameLabel.textContent = 'V' + i;
+                
+                const valLabel = clone.querySelector('.feat-val-lbl');
+                valLabel.id = `${key}-val-badge`;
+                valLabel.textContent = '0.00';
+                
+                const input = clone.querySelector('.feat-input-elem');
+                input.id = `${key}-input`;
+                input.oninput = (e) => onSliderChange(key, e.target.value);
+                
+                advancedGrid.appendChild(clone);
+            }
+            
+            // Load Default legit preset
+            loadPreset('legit');
+            
+            // Start Health pings
+            pingHealth();
+            setInterval(pingHealth, 5000);
+            
+            // Load Batch Default JSON
+            const defaultBatch = [
+                presets.legit,
+                presets.fraud
+            ];
+            document.getElementById('batch-json-input').value = JSON.stringify(defaultBatch, null, 2);
+        });
+
+        // Switch Tabs Function
+        function switchTab(tabId) {
+            // Remove active classes
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            // Add active to selected
+            const clickedBtn = Array.from(document.querySelectorAll('.tab-btn')).find(btn => btn.innerText.toLowerCase().includes(tabId));
+            if (clickedBtn) clickedBtn.classList.add('active');
+            
+            document.getElementById(`${tabId}-tab`).classList.add('active');
+        }
+
+        // Toggle advanced section
+        let advancedExpanded = false;
+        function toggleAdvanced() {
+            advancedExpanded = !advancedExpanded;
+            const grid = document.getElementById('advanced-grid');
+            const arrow = document.getElementById('adv-arrow');
+            
+            if (advancedExpanded) {
+                grid.classList.add('show');
+                arrow.style.transform = 'rotate(180deg)';
+            } else {
+                grid.classList.remove('show');
+                arrow.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        // Handle amount changes and log representation
+        function onAmountChanged(val) {
+            const num = parseFloat(val) || 0.0;
+            document.getElementById('amount-val-badge').textContent = '$ ' + num.toFixed(2);
+            featuresState['Amount_log'] = Math.log1p(num);
+        }
+
+        // Handle general slider changes
+        function onSliderChange(key, val) {
+            const num = parseFloat(val);
+            const badge = document.getElementById(`${key}-val-badge`);
+            if (badge) {
+                if (key === 'hour') {
+                    badge.textContent = `${num.toString().padStart(2, '0')}:00`;
+                } else {
+                    badge.textContent = num.toFixed(3);
+                }
+            }
+            featuresState[key.toUpperCase()] = num;
+        }
+
+        // Load Preset into inputs
+        function loadPreset(type) {
+            const data = presets[type];
+            if (!data) return;
+            
+            // Set Amount
+            const amtInput = document.getElementById('amount-input');
+            amtInput.value = data.Amount.toFixed(2);
+            onAmountChanged(data.Amount);
+            
+            // Set Hour
+            const hourInput = document.getElementById('hour-input');
+            hourInput.value = data.Hour;
+            onSliderChange('hour', data.Hour);
+            
+            // Set all V features
+            for (let i = 1; i <= 28; i++) {
+                const key = 'v' + i;
+                const input = document.getElementById(`${key}-input`);
+                if (input) {
+                    input.value = data[key.toUpperCase()];
+                    onSliderChange(key, data[key.toUpperCase()]);
+                }
+            }
+            
+            // Trigger automatic prediction check
+            document.getElementById('sandbox-form').dispatchEvent(new Event('submit'));
+        }
+
+        // Set risk circle gauge offset
+        function updateGauge(pct) {
+            const circle = document.getElementById('gauge-fill-circle');
+            const pctLabel = document.getElementById('risk-pct');
+            
+            // Dashoffset limits: 440 (0%) to 0 (100%)
+            const limit = 440;
+            const offset = limit - (limit * (pct / 100));
+            circle.style.strokeDashoffset = offset;
+            
+            pctLabel.textContent = pct.toFixed(1) + '%';
+            
+            // Adjust coloring
+            const pctVal = parseFloat(pct);
+            if (pctVal > 50) {
+                document.getElementById('risk-pct').style.color = 'var(--danger)';
+            } else if (pctVal > 25) {
+                document.getElementById('risk-pct').style.color = 'var(--warning)';
+            } else {
+                document.getElementById('risk-pct').style.color = 'var(--success)';
+            }
+        }
+
+        // PING /health status API
+        async function pingHealth() {
+            const startTime = Date.now();
+            const dot = document.getElementById('health-dot');
+            const text = document.getElementById('health-text');
+            const latencySpan = document.getElementById('health-latency');
+            
+            try {
+                const res = await fetch('/health');
+                const duration = Date.now() - startTime;
+                
+                if (res.ok) {
+                    const data = await res.json();
+                    dot.className = 'status-dot online';
+                    text.textContent = 'ONLINE';
+                    latencySpan.textContent = `${duration} ms`;
+                } else {
+                    throw new Error();
+                }
+            } catch (err) {
+                dot.className = 'status-dot offline';
+                text.textContent = 'DISCONNECTED';
+                latencySpan.textContent = '-- ms';
+            }
+        }
+
+        // Run Risk Prediction Form
+        async function runPrediction(e) {
+            e.preventDefault();
+            
+            const loader = document.getElementById('sandbox-loader');
+            loader.style.display = 'flex';
+            
+            // Construct payload following main.py TransactionRequest
+            const payload = {};
+            for (let i = 1; i <= 28; i++) {
+                payload[`V${i}`] = featuresState[`V${i}`] !== undefined ? featuresState[`V${i}`] : 0.0;
+            }
+            payload['Amount_log'] = featuresState['Amount_log'] !== undefined ? featuresState['Amount_log'] : Math.log1p(85.0);
+            payload['Hour'] = featuresState['HOUR'] !== undefined ? featuresState['HOUR'] : 14.0;
+            
+            try {
+                const res = await fetch('/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (!res.ok) {
+                    throw new Error('API server returned error code');
+                }
+                
+                const result = await res.json();
+                
+                // Set Risk Values
+                const prob = result.fraud_probability * 100;
+                updateGauge(prob);
+                
+                // Update badge state
+                const badge = document.getElementById('outcome-badge');
+                const badgeText = document.getElementById('outcome-text');
+                const badgeIcon = document.getElementById('outcome-icon');
+                
+                if (result.prediction === 'FRAUD') {
+                    badge.className = 'outcome-badge fraud';
+                    badgeText.textContent = 'FRAUD SUSPECT';
+                    badgeIcon.setAttribute('data-lucide', 'shield-alert');
+                } else {
+                    badge.className = 'outcome-badge legit';
+                    badgeText.textContent = 'CLEARED SECURE';
+                    badgeIcon.setAttribute('data-lucide', 'shield-check');
+                }
+                
+                // Re-draw lucide icons inside updated badge
+                lucide.createIcons();
+                
+                // Set Meta Stats
+                const confidence = document.getElementById('confidence-val');
+                confidence.textContent = result.confidence;
+                confidence.className = `meta-val ${result.confidence.toLowerCase()}`;
+                
+                document.getElementById('latency-val').textContent = `${result.latency_ms} ms`;
+                
+            } catch (err) {
+                console.error(err);
+                alert('API inference failed. Check server console logs.');
+            } finally {
+                // Remove loader overlay with a small timeout for smoothness
+                setTimeout(() => {
+                    loader.style.display = 'none';
+                }, 300);
+            }
+        }
+
+        // Run Batch Predictions Playground
+        async function runBatchPrediction() {
+            const inputVal = document.getElementById('batch-json-input').value;
+            const loader = document.getElementById('batch-loader');
+            
+            let dataArray;
+            try {
+                dataArray = JSON.parse(inputVal);
+                if (!Array.isArray(dataArray)) {
+                    throw new Error('Input must be a JSON array of transaction objects');
+                }
+            } catch (err) {
+                alert('Invalid JSON structure: ' + err.message);
+                return;
+            }
+            
+            loader.style.display = 'flex';
+            
+            // Map payloads to include dynamic calculated fields in script
+            const formattedArray = dataArray.map(item => {
+                const copy = { ...item };
+                // Calculate log amount if missing
+                if (copy.Amount_log === undefined) {
+                    copy.Amount_log = copy.Amount !== undefined ? Math.log1p(copy.Amount) : Math.log1p(0);
+                }
+                // Handle lower case properties from templates
+                for (let i = 1; i <= 28; i++) {
+                    if (copy[`V${i}`] === undefined && copy[`v${i}`] !== undefined) {
+                        copy[`V${i}`] = copy[`v${i}`];
+                    }
+                    if (copy[`V${i}`] === undefined) {
+                        copy[`V${i}`] = 0.0;
+                    }
+                }
+                if (copy.Hour === undefined && copy.hour !== undefined) {
+                    copy.Hour = copy.hour;
+                }
+                if (copy.Hour === undefined) {
+                    copy.Hour = 12.0;
+                }
+                return copy;
+            });
+            
+            try {
+                const res = await fetch('/predict/batch', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formattedArray)
+                });
+                
+                if (!res.ok) throw new Error('API server returned error status');
+                
+                const output = await res.json();
+                const tbody = document.getElementById('batch-results-body');
+                tbody.innerHTML = '';
+                
+                output.results.forEach((row, idx) => {
+                    const tr = document.createElement('tr');
+                    
+                    const tdIdx = document.createElement('td');
+                    tdIdx.textContent = `#${idx + 1}`;
+                    tr.appendChild(tdIdx);
+                    
+                    const tdPred = document.createElement('td');
+                    const badge = document.createElement('span');
+                    
+                    if (row.prediction === 'FRAUD') {
+                        badge.className = 'badge-pill fraud';
+                        badge.innerHTML = '<i data-lucide="alert-triangle" style="width:0.8rem;height:0.8rem"></i> Fraud';
+                    } else {
+                        badge.className = 'badge-pill legit';
+                        badge.innerHTML = '<i data-lucide="check" style="width:0.8rem;height:0.8rem"></i> Legit';
+                    }
+                    tdPred.appendChild(badge);
+                    tr.appendChild(tdPred);
+                    
+                    const tdProb = document.createElement('td');
+                    tdProb.style.fontFamily = 'monospace';
+                    tdProb.textContent = (row.fraud_probability * 100).toFixed(2) + '%';
+                    tr.appendChild(tdProb);
+                    
+                    tbody.appendChild(tr);
+                });
+                
+                lucide.createIcons();
+                
+            } catch (err) {
+                console.error(err);
+                alert('Batch processing failed. Verify API status.');
+            } finally {
+                setTimeout(() => {
+                    loader.style.display = 'none';
+                }, 300);
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,7 +1,9 @@
 import pickle
 import numpy as np
 import time
+import os
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 import uvicorn
 
@@ -12,10 +14,12 @@ app = FastAPI(
 )
 
 # Load model and feature names at startup (not per request)
-with open("fraud_model.pkl", "rb") as f:
+base_dir = os.path.dirname(os.path.abspath(__file__))
+
+with open(os.path.join(base_dir, "fraud_model.pkl"), "rb") as f:
     model = pickle.load(f)
 
-with open("feature_names.pkl", "rb") as f:
+with open(os.path.join(base_dir, "feature_names.pkl"), "rb") as f:
     feature_names = pickle.load(f)
 
 print(f"Model loaded. Expects {len(feature_names)} features.")
@@ -71,13 +75,18 @@ class PredictionResponse(BaseModel):
 
 # --- Endpoints ---
 
-@app.get("/")
+@app.get("/", response_class=HTMLResponse)
 def root():
-    return {
-        "message": "Fraud Detection API is live",
-        "docs": "/docs",
-        "health": "/health"
-    }
+    try:
+        index_path = os.path.join(base_dir, "index.html")
+        with open(index_path, "r", encoding="utf-8") as f:
+            html_content = f.read()
+        return HTMLResponse(content=html_content, status_code=200)
+    except Exception as e:
+        return HTMLResponse(
+            content=f"<h1>Error loading index.html</h1><p>{str(e)}</p>",
+            status_code=500
+        )
 
 
 @app.get("/health")
